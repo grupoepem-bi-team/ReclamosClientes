@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tablero de Reclamos — Comercial</title>
+<script src="datos.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #f5f6f8; color: #1a1a2e; padding: 20px; }
+  .header { background: #fff; border-radius: 12px; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo-ph { width: 44px; height: 44px; background: #1ab394; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; }
+  .header h1 { font-size: 20px; font-weight: 700; }
+  .header .subtitle { font-size: 12px; color: #888; margin-top: 2px; }
+  .period-selector { display: flex; gap: 4px; background: #f0f2f5; border-radius: 8px; padding: 4px; }
+  .period-btn { padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; background: transparent; color: #888; transition: all 0.2s; }
+  .period-btn.active { background: #fff; color: #1ab394; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+  .period-btn:hover { color: #1ab394; }
+  .filters { display: flex; gap: 10px; align-items: center; }
+  select.filter { background: #f7f8fa; border: 1px solid #e2e4e8; border-radius: 8px; padding: 8px 14px; font-size: 12px; color: #555; cursor: pointer; outline: none; }
+  select.filter:hover { border-color: #1ab394; }
+
+  .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aaa; margin-bottom: 10px; margin-top: 24px; }
+
+  /* KPI HERO */
+  .kpi-hero { background: #fff; border-radius: 14px; padding: 28px 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 16px; position: relative; overflow: hidden; }
+  .kpi-hero::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #1ab394, #1c84c6, #1ab394); }
+  .big-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-bottom: 24px; }
+  .big-kpi { padding: 0 24px; border-right: 1px solid #f0f2f5; }
+  .big-kpi:first-child { padding-left: 0; }
+  .big-kpi:last-child { border-right: none; padding-right: 0; }
+  .big-kpi .label { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+  .big-kpi .value { font-size: 36px; font-weight: 800; line-height: 1; }
+  .big-kpi .sub { font-size: 11px; color: #aaa; margin-top: 4px; }
+  .big-kpi .trend { font-size: 11px; font-weight: 600; margin-top: 6px; }
+  .big-kpi.primary .value { color: #1ab394; }
+  .big-kpi.warning .value { color: #f8ac59; }
+  .big-kpi.danger .value { color: #ed5565; }
+  .big-kpi.info .value { color: #1c84c6; }
+  .trend.up { color: #1ab394; } .trend.down { color: #ed5565; } .trend.neutral { color: #888; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .kpi-card { background: #f7f8fa; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .kpi-card .label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.04em; }
+  .kpi-card .value { font-size: 22px; font-weight: 700; }
+  .kpi-card .pct { font-size: 10px; font-weight: 600; }
+  .kpi-card .pct.good { color: #1ab394; } .kpi-card .pct.bad { color: #ed5565; } .kpi-card .pct.neutral { color: #888; }
+  .mini-bar { height: 3px; background: #e0e0e0; border-radius: 2px; margin-top: 4px; overflow: hidden; }
+  .mini-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+
+  /* CHART */
+  .chart-block { background: #fafbfc; border: 1px dashed #ddd; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #bbb; font-size: 12px; transition: all 0.3s; }
+  .chart-h260 { height: 260px; }
+  .chart-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: #555; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .chart-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+  /* TABLE */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .data-table th { text-align: center; padding: 8px 6px; font-weight: 600; color: #888; border-bottom: 2px solid #f0f2f5; white-space: nowrap; position: sticky; top: 0; background: #fff; }
+  .data-table th.left { text-align: left; }
+  .data-table td { padding: 7px 6px; border-bottom: 1px solid #f5f6f8; text-align: center; }
+  .data-table td.left { text-align: left; font-weight: 600; }
+  .data-table tbody tr:hover { background: #f7f8fa; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .badge.good { background: #e0f5ef; color: #1ab394; } .badge.warn { background: #fdf3e3; color: #f8ac59; } .badge.bad { background: #fde8ea; color: #ed5565; }
+  .table-wrap { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); max-height: 500px; overflow-y: auto; }
+
+  /* ALERT */
+  .alert-row { display: grid; grid-template-columns: repeat(4, 1fr) 1.2fr; gap: 12px; }
+  .alert-card { background: #f7f8fa; border-radius: 10px; padding: 16px; text-align: center; border-top: 3px solid #ddd; }
+  .alert-card.crit { border-top-color: #ed5565; } .alert-card.alto { border-top-color: #f8ac59; } .alert-card.med { border-top-color: #23c6c8; } .alert-card.bajo { border-top-color: #1ab394; }
+  .alert-card.info { border-top-color: #1c84c6; display: flex; flex-direction: column; justify-content: center; text-align: left; }
+  .alert-card .num { font-size: 24px; font-weight: 700; }
+  .alert-card .lbl { font-size: 10px; color: #888; margin-top: 3px; text-transform: uppercase; }
+
+  .footer { margin-top: 24px; padding: 20px; background: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .footer-logo { width: 50px; height: 50px; border-radius: 8px; border: 2px dashed #ddd; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #aaa; }
+
+  .loading { text-align: center; padding: 40px; color: #aaa; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo-ph">EPEM</div>
+    <div>
+      <h1>Tablero de Reclamos de Clientes</h1>
+      <div class="subtitle" id="subtitle">Departamento Comercial · Cargando...</div>
+    </div>
+  </div>
+  <div class="filters">
+    <div class="period-selector">
+      <button class="period-btn active" data-period="2years" onclick="setPeriod('2years')">Ultimos 2 años</button>
+      <button class="period-btn" data-period="2026" onclick="setPeriod('2026')">Año 2026</button>
+      <button class="period-btn" data-period="2025" onclick="setPeriod('2025')">Año 2025</button>
+      <button class="period-btn" data-period="2024" onclick="setPeriod('2024')">Año 2024</button>
+      <button class="period-btn" data-period="all" onclick="setPeriod('all')">Historico</button>
+    </div>
+    <select class="filter" id="empresaFilter" onchange="updateSucursales(); render()">
+      <option value="all">🏢 Empresa: Todas</option>
+    </select>
+    <select class="filter" id="sucursalFilter" onchange="render()">
+      <option value="all">📍 Sucursal: Todas</option>
+    </select>
+  </div>
+</div>
+
+<!-- KPI HERO -->
+<div class="kpi-hero">
+  <div class="big-row">
+    <div class="big-kpi primary">
+      <div class="label">Reclamos Recibidos</div>
+      <div class="value" id="kpi-recibidos">—</div>
+      <div class="sub" id="kpi-recibidos-sub">—</div>
+      <div class="trend neutral" id="kpi-recibidos-trend">—</div>
+    </div>
+    <div class="big-kpi primary">
+      <div class="label">Resueltos + Terminados</div>
+      <div class="value" id="kpi-resueltos">—</div>
+      <div class="sub" id="kpi-resueltos-sub">—</div>
+      <div class="trend up" id="kpi-resueltos-trend">—</div>
+    </div>
+    <div class="big-kpi danger">
+      <div class="label">Solicitan Cancelacion</div>
+      <div class="value" id="kpi-cancelaciones">—</div>
+      <div class="sub" id="kpi-cancelaciones-sub">—</div>
+      <div class="trend down" id="kpi-cancelaciones-trend">—</div>
+    </div>
+    <div class="big-kpi info">
+      <div class="label">Fidelizados</div>
+      <div class="value" id="kpi-fidelizados">—</div>
+      <div class="sub" id="kpi-fidelizados-sub">—</div>
+      <div class="trend up" id="kpi-fidelizados-trend">—</div>
+    </div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="label">Tasa de Resolucion</div><div class="value" id="kpi-tasa">—</div><div class="pct good" id="kpi-tasa-pct">—</div><div class="mini-bar"><div class="mini-bar-fill" id="kpi-tasa-bar" style="background:#1ab394;width:0"></div></div></div>
+    <div class="kpi-card"><div class="label">Dias Prom. Cierre</div><div class="value" id="kpi-dias">—</div><div class="pct neutral" id="kpi-dias-pct">—</div></div>
+    <div class="kpi-card"><div class="label">% Mismo Dia</div><div class="value" id="kpi-mismodia">—</div><div class="pct good" id="kpi-mismodia-pct">—</div><div class="mini-bar"><div class="mini-bar-fill" id="kpi-mismodia-bar" style="background:#1ab394;width:0"></div></div></div>
+    <div class="kpi-card"><div class="label">% Tarda +30 dias</div><div class="value" id="kpi-mas30">—</div><div class="pct bad" id="kpi-mas30-pct">—</div><div class="mini-bar"><div class="mini-bar-fill" id="kpi-mas30-bar" style="background:#ed5565;width:0"></div></div></div>
+    <div class="kpi-card"><div class="label">Clientes Afectados</div><div class="value" id="kpi-clientes">—</div><div class="pct neutral">en el periodo</div></div>
+    <div class="kpi-card"><div class="label">Pendientes</div><div class="value" id="kpi-pendientes">—</div><div class="pct bad" id="kpi-pendientes-pct">—</div></div>
+  </div>
+</div>
+
+<!-- EVOLUCION -->
+<div class="section-label">Evolucion — Reclamos Recibidos vs Resueltos por Mes</div>
+<div class="chart-card" style="margin-bottom:16px">
+  <div class="chart-title">Reclamos por Mes — <span id="chart-period-label">Ultimos 2 años</span></div>
+  <div class="chart-block chart-h260" id="chart-evolucion">📈 Cargando grafico...</div>
+</div>
+
+<!-- PLAZOS -->
+<div class="section-label">Plazos de Resolucion</div>
+<div class="two-col">
+  <div class="chart-card">
+    <div class="chart-title">Dias Promedio de Cierre por Mes</div>
+    <div class="chart-block" style="height:220px" id="chart-dias">📉 Cargando...</div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">% Resolucion Mismo Dia vs +30 Dias</div>
+    <div class="chart-block" style="height:220px" id="chart-plazos">📊 Cargando...</div>
+  </div>
+</div>
+
+<!-- TABLA MENSUAL -->
+<div class="section-label">Detalle Mensual</div>
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="left">Mes</th>
+        <th>Recibidos</th>
+        <th>Resueltos</th>
+        <th>% Resol.</th>
+        <th>Dias Prom.</th>
+        <th>% Mismo Dia</th>
+        <th>% +30 dias</th>
+        <th>Fidelizados</th>
+        <th>Cancelaciones</th>
+        <th>Neto</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-mensual"></tbody>
+  </table>
+</div>
+
+<!-- ALERTAS -->
+<div class="section-label" style="margin-top:24px">Alertas — Reclamos Pendientes</div>
+<div class="alert-row" id="alert-row">
+  <div class="alert-card crit"><div class="num" id="alert-1ano">—</div><div class="lbl">+1 año</div></div>
+  <div class="alert-card alto"><div class="num" id="alert-612">—</div><div class="lbl">6-12 meses</div></div>
+  <div class="alert-card med"><div class="num" id="alert-16">—</div><div class="lbl">1-6 meses</div></div>
+  <div class="alert-card bajo"><div class="num" id="alert-1m">—</div><div class="lbl">&lt;1 mes</div></div>
+  <div class="alert-card info">
+    <div style="font-size:12px;font-weight:600">Total pendientes</div>
+    <div style="font-size:24px;font-weight:700;color:#ed5565" id="alert-total">—</div>
+    <div style="font-size:11px;color:#888" id="alert-prom">—</div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-logo">MPP</div>
+  <div class="footer-logo">MEE</div>
+  <div class="footer-logo">ODO</div>
+  <div class="footer-logo">EPEM</div>
+</div>
+
+<script>
+const MESES = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+let currentPeriod = '2years';
+
+function setPeriod(p) {
+  currentPeriod = p;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-period="${p}"]`).classList.add('active');
+  render();
+}
+
+function getFilteredData() {
+  if (!window.DATOS_RECLAMOS) return [];
+  const empresa = document.getElementById('empresaFilter').value;
+  const sucursal = document.getElementById('sucursalFilter').value;
+  const empresasValidas = ['MEE', 'MPP', 'ODO'];
+
+  // Filtrar por periodo
+  let rows = DATOS_RECLAMOS.filter(r => {
+    if (currentPeriod === '2years') return r.anio >= 2024;
+    if (currentPeriod === 'all') return true;
+    return r.anio == parseInt(currentPeriod);
+  });
+
+  // Si empresa=all y sucursal=all: agregar las 3 empresas validas (excluye TAP/MEP/etc)
+  if (empresa === 'all' && sucursal === 'all') {
+    const filtered = rows.filter(r => empresasValidas.includes(r.empresa));
+    return aggregateByMonth(filtered);
+  }
+
+  // Si empresa especifica y sucursal=all: agregar todas las sucursales de esa empresa por mes
+  if (empresa !== 'all' && sucursal === 'all') {
+    const filtered = rows.filter(r => r.empresa === empresa);
+    return aggregateByMonth(filtered);
+  }
+
+  // Si empresa=all y sucursal especifica: agregar las 3 empresas para esa sucursal
+  if (empresa === 'all' && sucursal !== 'all') {
+    const filtered = rows.filter(r => r.sucursal === sucursal && empresasValidas.includes(r.empresa));
+    return aggregateByMonth(filtered);
+  }
+
+  // Si empresa y sucursal especificas: usar la combinacion exacta
+  return rows.filter(r => r.empresa === empresa && r.sucursal === sucursal);
+}
+
+function aggregateByMonth(rows) {
+  const byMonth = {};
+  rows.forEach(r => {
+    const key = r.anio + '-' + r.mes;
+    if (!byMonth[key]) {
+      byMonth[key] = { empresa: r.empresa, sucursal: 'all', anio: r.anio, mes: r.mes, reclamos: 0, resueltos: 0, pendientes: 0, fidelizados: 0, cancelaciones: 0, clientes: 0, _diasSum: 0, _diasCount: 0, _mismoDiaSum: 0, _mismoDiaCount: 0, _mas30Sum: 0, _mas30Count: 0 };
+    }
+    const m = byMonth[key];
+    m.reclamos += parseInt(r.reclamos);
+    m.resueltos += parseInt(r.resueltos);
+    m.pendientes += parseInt(r.pendientes);
+    m.fidelizados += parseInt(r.fidelizados);
+    m.cancelaciones += parseInt(r.cancelaciones);
+    m.clientes += parseInt(r.clientes);
+    if (r.dias_prom && r.dias_prom !== 'null') { m._diasSum += parseFloat(r.dias_prom) * parseInt(r.reclamos); m._diasCount += parseInt(r.reclamos); }
+    if (r.pct_mismo_dia && r.pct_mismo_dia !== 'null') { m._mismoDiaSum += parseFloat(r.pct_mismo_dia) * parseInt(r.reclamos); m._mismoDiaCount += parseInt(r.reclamos); }
+    if (r.pct_mas_30 && r.pct_mas_30 !== 'null') { m._mas30Sum += parseFloat(r.pct_mas_30) * parseInt(r.reclamos); m._mas30Count += parseInt(r.reclamos); }
+  });
+  return Object.values(byMonth).map(m => ({
+    ...m,
+    dias_prom: m._diasCount > 0 ? (m._diasSum / m._diasCount).toFixed(1) : null,
+    pct_mismo_dia: m._mismoDiaCount > 0 ? (m._mismoDiaSum / m._mismoDiaCount).toFixed(1) : null,
+    pct_mas_30: m._mas30Count > 0 ? (m._mas30Sum / m._mas30Count).toFixed(1) : null
+  }));
+}
+
+function aggregate(rows) {
+  const total = rows.reduce((s, r) => s + parseInt(r.reclamos), 0);
+  const resueltos = rows.reduce((s, r) => s + parseInt(r.resueltos), 0);
+  const pendientes = rows.reduce((s, r) => s + parseInt(r.pendientes), 0);
+  const fidelizados = rows.reduce((s, r) => s + parseInt(r.fidelizados), 0);
+  const cancelaciones = rows.reduce((s, r) => s + parseInt(r.cancelaciones), 0);
+  const clientes = rows.reduce((s, r) => s + parseInt(r.clientes), 0);
+  const diasVals = rows.filter(r => r.dias_prom && r.dias_prom !== 'null').map(r => parseFloat(r.dias_prom) * parseInt(r.reclamos));
+  const diasProm = diasVals.length ? (diasVals.reduce((a,b)=>a+b,0) / rows.reduce((s,r)=>s+parseInt(r.reclamos),0)).toFixed(1) : '—';
+  const mismoDiaVals = rows.filter(r => r.pct_mismo_dia && r.pct_mismo_dia !== 'null').map(r => parseFloat(r.pct_mismo_dia));
+  const pctMismo = mismoDiaVals.length ? (mismoDiaVals.reduce((a,b)=>a+b,0) / mismoDiaVals.length).toFixed(1) : '—';
+  const mas30Vals = rows.filter(r => r.pct_mas_30 && r.pct_mas_30 !== 'null').map(r => parseFloat(r.pct_mas_30));
+  const pctMas30 = mas30Vals.length ? (mas30Vals.reduce((a,b)=>a+b,0) / mas30Vals.length).toFixed(1) : '—';
+  return { total, resueltos, pendientes, fidelizados, cancelaciones, clientes, diasProm, pctMismo, pctMas30 };
+}
+
+function fmt(n) { return n.toLocaleString('es-PY'); }
+
+function render() {
+  const data = getFilteredData();
+  if (!data.length) return;
+
+  const agg = aggregate(data);
+  const tasaRes = agg.total ? (agg.resueltos / agg.total * 100).toFixed(1) : 0;
+  const pctCancel = agg.total ? (agg.cancelaciones / agg.total * 100).toFixed(1) : 0;
+  const pctFideli = agg.resueltos ? (agg.fidelizados / agg.resueltos * 100).toFixed(1) : 0;
+
+  const periodLabel = { '2years':'Ultimos 2 años (2024-2026)','2026':'Año 2026','2025':'Año 2025','2024':'Año 2024','all':'Historico (2018-2026)' }[currentPeriod];
+  document.getElementById('subtitle').textContent = `Departamento Comercial · ${periodLabel}`;
+
+  // KPIs big
+  document.getElementById('kpi-recibidos').textContent = fmt(agg.total);
+  document.getElementById('kpi-recibidos-sub').textContent = `${data.length} meses · ${fmt(agg.clientes)} clientes`;
+  document.getElementById('kpi-recibidos-trend').textContent = `Promedio: ${fmt(Math.round(agg.total/data.length))} reclamos/mes`;
+
+  document.getElementById('kpi-resueltos').textContent = fmt(agg.resueltos);
+  document.getElementById('kpi-resueltos-sub').textContent = `Tasa: ${tasaRes}%`;
+  document.getElementById('kpi-resueltos-trend').textContent = `${fmt(agg.total - agg.resueltos)} sin resolver`;
+
+  document.getElementById('kpi-cancelaciones').textContent = fmt(agg.cancelaciones);
+  document.getElementById('kpi-cancelaciones-sub').textContent = `${pctCancel}% del total`;
+  document.getElementById('kpi-cancelaciones-trend').textContent = `Contratos en riesgo`;
+
+  document.getElementById('kpi-fidelizados').textContent = fmt(agg.fidelizados);
+  document.getElementById('kpi-fidelizados-sub').textContent = `${pctFideli}% de cerrados`;
+  document.getElementById('kpi-fidelizados-trend').textContent = `Retencion lograda`;
+
+  // KPIs secondary
+  document.getElementById('kpi-tasa').textContent = tasaRes + '%';
+  document.getElementById('kpi-tasa-pct').textContent = tasaRes >= 85 ? '▲ Buena' : '▼ Revisar';
+  document.getElementById('kpi-tasa-bar').style.width = tasaRes + '%';
+
+  document.getElementById('kpi-dias').textContent = agg.diasProm;
+  document.getElementById('kpi-dias-pct').textContent = agg.diasProm < 5 ? '▲ Rapido' : agg.diasProm < 20 ? '▲ Aceptable' : '▼ Lento';
+
+  document.getElementById('kpi-mismodia').textContent = agg.pctMismo + '%';
+  document.getElementById('kpi-mismodia-pct').textContent = agg.pctMismo >= 70 ? '▲ Eficiente' : '▼ Mejorar';
+  document.getElementById('kpi-mismodia-bar').style.width = agg.pctMismo + '%';
+
+  document.getElementById('kpi-mas30').textContent = agg.pctMas30 + '%';
+  document.getElementById('kpi-mas30-pct').textContent = agg.pctMas30 < 5 ? '▲ Controlado' : '▲ Atender';
+  document.getElementById('kpi-mas30-bar').style.width = agg.pctMas30 + '%';
+
+  document.getElementById('kpi-clientes').textContent = fmt(agg.clientes);
+  document.getElementById('kpi-pendientes').textContent = fmt(agg.pendientes);
+  document.getElementById('kpi-pendientes-pct').textContent = agg.pendientes > 1000 ? '▼ Alto volumen' : 'Normal';
+
+  // Tabla mensual
+  const sorted = [...data].sort((a, b) => b.anio - a.anio || b.mes - a.mes);
+  let html = '';
+  sorted.forEach(r => {
+    const pctRes = r.reclamos > 0 ? (parseInt(r.resueltos) / parseInt(r.reclamos) * 100).toFixed(1) : 0;
+    const dias = r.dias_prom && r.dias_prom !== 'null' ? parseFloat(r.dias_prom) : null;
+    const neto = parseInt(r.fidelizados) - parseInt(r.cancelaciones);
+    const diasClass = dias === null ? '' : dias <= 2 ? 'good' : dias <= 10 ? 'warn' : 'bad';
+    const netoClass = neto >= 0 ? 'good' : 'bad';
+    html += `<tr><td class="left">${MESES[r.mes]} ${r.anio}</td><td>${fmt(r.reclamos)}</td><td>${fmt(r.resueltos)}</td><td>${pctRes}%</td><td>${dias !== null ? `<span class="badge ${diasClass}">${dias}</span>` : '—'}</td><td>${r.pct_mismo_dia || '—'}%</td><td>${r.pct_mas_30 || '—'}%</td><td style="color:#1ab394">${r.fidelizados}</td><td style="color:#ed5565">${r.cancelaciones}</td><td><span class="badge ${netoClass}">${neto >= 0 ? '+' : ''}${neto}</span></td></tr>`;
+  });
+  document.getElementById('tabla-mensual').innerHTML = html;
+
+  // Grafico placeholder
+  const chartLabel = periodLabel;
+  document.getElementById('chart-period-label').textContent = chartLabel;
+
+  // SVG simple line chart
+  const maxVal = Math.max(...sorted.map(r => parseInt(r.reclamos)));
+  const w = 800, h = 240, pad = 40;
+  const xScale = (i, n) => pad + (i / (n - 1)) * (w - pad * 2);
+  const yScale = (v) => h - pad - (v / maxVal) * (h - pad * 2);
+
+  const ordered = [...sorted].reverse();
+  let pathRecibidos = '', pathResueltos = '';
+  let labels = '';
+  ordered.forEach((r, i) => {
+    const x = xScale(i, ordered.length);
+    const yR = yScale(parseInt(r.reclamos));
+    const yRes = yScale(parseInt(r.resueltos));
+    pathRecibidos += (i === 0 ? 'M' : 'L') + x + ',' + yR + ' ';
+    pathResueltos += (i === 0 ? 'M' : 'L') + x + ',' + yRes + ' ';
+    if (i % Math.ceil(ordered.length / 8) === 0) labels += `<text x="${x}" y="${h-pad+16}" font-size="9" fill="#888" text-anchor="middle">${MESES[r.mes]}${String(r.anio).slice(2)}</text>`;
+  });
+
+  document.getElementById('chart-evolucion').innerHTML = `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:100%"><path d="${pathRecibidos}" fill="none" stroke="#1ab394" stroke-width="2"/><path d="${pathResueltos}" fill="none" stroke="#1c84c6" stroke-width="2" stroke-dasharray="4"/>${labels}<text x="${pad}" y="${pad}" font-size="10" fill="#1ab394">● Recibidos</text><text x="${pad+80}" y="${pad}" font-size="10" fill="#1c84c6">--- Resueltos</text></svg>`;
+
+  // Chart dias
+  const diasData = ordered.filter(r => r.dias_prom && r.dias_prom !== 'null').map(r => parseFloat(r.dias_prom));
+  const maxDias = Math.max(...diasData);
+  let pathDias = '';
+  let labelDias = '';
+  ordered.forEach((r, i) => {
+    if (r.dias_prom && r.dias_prom !== 'null') {
+      const x = xScale(i, ordered.length);
+      const y = h - pad - (parseFloat(r.dias_prom) / maxDias) * (h - pad * 2);
+      pathDias += (pathDias === '' ? 'M' : 'L') + x + ',' + y + ' ';
+    }
+  });
+  document.getElementById('chart-dias').innerHTML = `<svg viewBox="0 0 ${w} ${h-20}" style="width:100%;height:100%"><path d="${pathDias}" fill="none" stroke="#ed5565" stroke-width="2"/></svg>`;
+
+  // Chart plazos
+  let pathMismo = '', pathMas30 = '';
+  ordered.forEach((r, i) => {
+    const x = xScale(i, ordered.length);
+    const yMismo = h - pad - (parseFloat(r.pct_mismo_dia || 0) / 100) * (h - pad * 2);
+    const yMas30 = h - pad - (parseFloat(r.pct_mas_30 || 0) / 100) * (h - pad * 2);
+    pathMismo += (i === 0 ? 'M' : 'L') + x + ',' + yMismo + ' ';
+    pathMas30 += (i === 0 ? 'M' : 'L') + x + ',' + yMas30 + ' ';
+  });
+  document.getElementById('chart-plazos').innerHTML = `<svg viewBox="0 0 ${w} ${h-20}" style="width:100%;height:100%"><path d="${pathMismo}" fill="none" stroke="#1ab394" stroke-width="2"/><path d="${pathMas30}" fill="none" stroke="#ed5565" stroke-width="2" stroke-dasharray="4"/><text x="${pad}" y="${pad}" font-size="10" fill="#1ab394">● % Mismo dia</text><text x="${pad+80}" y="${pad}" font-size="10" fill="#ed5565">--- % +30 dias</text></svg>`;
+
+  // Alertas (solo si es all o 2years, son acumulados)
+  if (currentPeriod === '2years' || currentPeriod === 'all') {
+    document.getElementById('alert-1ano').textContent = '1,541';
+    document.getElementById('alert-612').textContent = '897';
+    document.getElementById('alert-16').textContent = '735';
+    document.getElementById('alert-1m').textContent = '134';
+    document.getElementById('alert-total').textContent = '3,294';
+    document.getElementById('alert-prom').textContent = 'Antiguedad promedio: 377 dias';
+  } else {
+    document.getElementById('alert-1ano').textContent = '—';
+    document.getElementById('alert-612').textContent = '—';
+    document.getElementById('alert-16').textContent = '—';
+    document.getElementById('alert-1m').textContent = '—';
+    document.getElementById('alert-total').textContent = agg.pendientes.toLocaleString();
+    document.getElementById('alert-prom').textContent = `Pendientes del periodo`;
+  }
+}
+
+function updateSucursales() {
+  const empresa = document.getElementById('empresaFilter').value;
+  const sucSel = document.getElementById('sucursalFilter');
+  sucSel.innerHTML = '<option value="all">📍 Sucursal: Todas</option>';
+
+  let sucursales;
+  if (empresa === 'all') {
+    sucursales = [...new Set(DATOS_RECLAMOS.map(r => r.sucursal).filter(s => s !== 'all'))];
+  } else {
+    sucursales = [...new Set(DATOS_RECLAMOS.filter(r => r.empresa === empresa).map(r => r.sucursal).filter(s => s !== 'all'))];
+  }
+  sucursales.sort().forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s; opt.textContent = `📍 ${s}`;
+    sucSel.appendChild(opt);
+  });
+}
+
+function initFilters() {
+  if (!window.DATOS_RECLAMOS) return;
+  const empresasValidas = ['MEE', 'MPP', 'ODO'];
+  const empresas = [...new Set(DATOS_RECLAMOS.map(r => r.empresa).filter(e => e !== 'all' && empresasValidas.includes(e)))];
+
+  const empSel = document.getElementById('empresaFilter');
+  empresas.forEach(e => { const opt = document.createElement('option'); opt.value = e; opt.textContent = `🏢 ${e}`; empSel.appendChild(opt); });
+
+  updateSucursales();
+  render();
+}
+
+window.addEventListener('load', initFilters);
+</script>
+</body>
+</html>
