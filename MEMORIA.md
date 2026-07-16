@@ -344,8 +344,19 @@ Archivo: `query.md` con 30 queries verificadas:
 | `MEMORIA.md` | Este archivo - memoria pulida y verificada |
 | `query.md` | 30 queries SQL verificadas para el tablero |
 | `MAPA.md` | Mapa visual de entidades, flujo, dimensiones y componentes |
-| `wireframe.html` | Wireframe funcional con filtros dinamicos (JS puro) |
+| `wireframe.html` | Wireframe funcional original con filtros dinamicos (JS puro, monolitico) |
 | `datos.js` | Datos pre-cargados desde BD para el wireframe |
+| `vercel/` | **Tablero de produccion** — HTML modular + CSS + JS modular + assets |
+| `vercel/index.html` | Estructura HTML con sidebar y 5 secciones |
+| `vercel/styles.css` | CSS centralizado con variables, utilidades, sidebar, responsive |
+| `vercel/js/state.js` | Estado global del tablero |
+| `vercel/js/data.js` | Filtrado y agregacion de datos (pre-agrupados por empresa='all') |
+| `vercel/js/filters.js` | Logica de filtros, chips, periodos rapidos |
+| `vercel/js/nav.js` | Navegacion por secciones con renderizado lazy |
+| `vercel/js/render/*.js` | Renderers: kpis, tabla, clientes, gestores, categorias, ofrecimientos, motivos-fidelizan |
+| `vercel/js/chart/*.js` | Graficos SVG: evolucion, dias, plazos |
+| `vercel/js/main.js` | Orquestador de inicializacion y render |
+| `test-regresion.js` | Test de regresion con Playwright (local server + navegacion + screenshots) |
 
 ## 5. Historial
 | Fecha | Accion |
@@ -360,6 +371,14 @@ Archivo: `query.md` con 30 queries verificadas:
 | 2026-06-17 | Wireframe iterativo: 5 versiones hasta llegar al diseno final con historia en 4 capitulos |
 | 2026-06-17 | Filtros dinamicos funcionales (periodo, empresa, sucursal) verificados contra BD |
 | 2026-06-17 | Categorizacion de 126 motivos en 9 categorias comerciales |
+| 2026-06-27 | Deploy inicial a Vercel con HTML estatico y logos base64 |
+| 2026-07-16 | Refactorizacion completa: JS monolitico → 16 modulos separados (state, data, filters, nav, 7 renderers, 3 charts, main) |
+| 2026-07-16 | Nuevas features: comparativa YoY, chips de filtros, KPIs secundarios con metas, donut chart 9 categorias, skeleton loading, transiciones, tooltip evolucion |
+| 2026-07-16 | Fix critico de estructura HTML: eliminado div extra que cerraba .main-content prematuramente |
+| 2026-07-16 | Fix de doble conteo en data.js: usa registros pre-agregados (empresa='all') |
+| 2026-07-16 | QA visual con Playwright: 6 secciones renderizan correctamente |
+| 2026-07-16 | Eliminada seccion Alertas (cards de pendientes por antiguedad) del tablero y sidebar |
+| 2026-07-16 | Test de regresion con Playwright: 0 errores, 5 secciones navegables OK |
 
 ## 6. Categorizacion de Reclamos
 
@@ -379,33 +398,60 @@ Los "reclamos" son contactos/gestiones de clientes, no todos son quejas reales. 
 
 > Mapeo de IDs en BITACORA.md y query.md
 
-## 7. Wireframe Dinamico
+## 7. Tablero de Produccion
 
-Archivo: `wireframe.html` + `datos.js`
+Archivo: `vercel/index.html` + `vercel/js/` (modular) + `vercel/styles.css`
 
-**Estructura: 4 capitulos**
-1. Cuantos reclamos recibimos? (volumen, tendencia, comparativa YoY)
-2. Como gestionamos los reclamos? (eficiencia, plazos, backlog)
-3. Que impacto tienen en el negocio? (cancelaciones, fidelizaciones, retencion)
-4. Por que reclaman los clientes? (motivos, causas) — pendiente reemplazar por categorias
+**Estructura: 5 secciones navegables (sidebar)**
+1. **Panorama** — KPIs hero, evolucion mensual, tabla detalle mensual
+2. **Operacion** — Plazos de cierre (mismo dia, +30 dias, dias prom), tabla mensual operativa
+3. **Clientes** — Top clientes con reclamos, motivos que fidelizan
+4. **Negocio** — Categorias de reclamos (donut chart 9 categorias), ofrecimientos comerciales
+5. **Equipo** — Ranking de cargadores y gestores de reclamos
+
+**Stack:** HTML + CSS + JS vanilla, sitio estatico en Vercel.
+**URL:** `https://tablero-reclamos-epem.vercel.app`
 
 **Filtros dinamicos (JS puro, sin librerias):**
-- Periodo: 2 años / 2026 / 2025 / 2024 / Historico
-- Empresa: Todas / MEE / MPP / ODO (solo estas 3)
-- Sucursal: Todas / sucursales filtradas por empresa
+- Periodo: Mes Actual / Historico / Mes: Todos / Ano: Todos / Empresa: Todas / Sucursal: Todas
+- Chips visuales de filtros activos con opcion de limpiar
 
 **KPIs que se recalculan:**
-- 4 grandes: recibidos, resueltos, cancelaciones, fidelizados
-- 6 secundarios: tasa resolucion, dias prom, % mismo dia, % +30 dias, clientes, pendientes
-- Tabla mensual completa
-- 3 graficos SVG (evolucion, dias cierre, mismo dia vs +30 dias)
-- Alertas de pendientes por antiguedad
+- 4 grandes: recibidos, resueltos, pendientes, % fidelizados
+- 3 secundarios: tasa resolucion (con meta 90% y semaforo), dias prom. cierre (con semaforo), clientes afectados
+- Comparativa vs periodo anterior (YoY o mes previo)
+- Tabla mensual completa (recibidos, resueltos, % resol., dias prom, % mismo dia, % +30 dias, fidelizados, cancelaciones, neto)
+- 3 graficos SVG (evolucion, dias cierre, plazos de resolucion)
+
+**Arquitectura JS modular (16 modulos):**
+- `state.js` — estado global
+- `data.js` — filtrado y agregacion de datos
+- `filters.js` — logica de filtros y chips
+- `nav.js` — navegacion por secciones
+- `render/kpis.js`, `render/tabla.js`, `render/clientes.js`, `render/gestores.js`, `render/categorias.js`, `render/ofrecimientos.js`, `render/motivos-fidelizan.js` — renderers de UI
+- `chart/evolucion.js`, `chart/dias.js`, `chart/plazos.js` — graficos SVG
+- `main.js` — orquestador
 
 **Verificado contra BD:** todos los filtros cuadran exactamente.
 
 ## 8. Pendiente
-- [ ] Agregar seccion de categorias al tablero (9 categorias reemplazan Capitulo 4)
-- [ ] Exportar datos de categorias por empresa x mes para filtros dinamicos
-- [ ] Generar HTML final del tablero con logos base64
-- [ ] Aplicar diseno segun agente_ui_ux.md
-- [ ] Embeber logos segun GUIA_TRATAMIENTO_LOGOS.md
+- [x] Agregar seccion de categorias al tablero (9 categorias reemplazan Capitulo 4) — HECHO 2026-06-27
+- [x] Exportar datos de categorias por empresa x mes para filtros dinamicos — HECHO 2026-06-27
+- [x] Generar HTML final del tablero con logos base64 — HECHO 2026-06-27
+- [x] Aplicar diseno segun agente_ui_ux.md — HECHO 2026-07-16
+- [x] Embeber logos segun GUIA_TRATAMIENTO_LOGOS.md — HECHO 2026-06-27
+- [x] Refactorizar JS de monolitico a modular (16 modulos) — HECHO 2026-07-16
+- [x] Eliminar seccion Alertas del tablero — HECHO 2026-07-16
+- [ ] API FastAPI para datos dinamicos (Nivel B)
+- [ ] Tests automatizados con Playwright integrados en CI
+
+## 9. Reglas de Seguridad (orden de Emmanuel 2026-06-27)
+
+### Regla del Vault
+- TODO desarrollo nuevo se conecta a 192.168.0.241 (espejo), NUNCA a 0.250 (produccion)
+- Las credenciales de produccion son MUY delicadas — NO se usan sin permiso explicito
+- NUNCA exponer contraseñas en ningun script, config, o archivo
+- Se necesita permiso explicito de Emmanuel para poner un pass en cualquier script
+- Scripts leen credenciales del Vault (~/.hermes/vault/*.json) en runtime
+- config.yaml NO contiene passwords — solo host/port/db (metadata no sensible)
+- El Vault gestiona credenciales — los scripts lo consultan en runtime
